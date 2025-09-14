@@ -9,10 +9,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Chosen Palette: ConnectView Colors (Dark Blue, Lime Green) -->
-    <!-- Application Structure Plan: A dashboard structure was chosen to provide an immediate overview of key metrics (KPIs) and a detailed, interactive view of the assets. This structure includes KPI cards for quick stats, an interactive table with search and filter capabilities for detailed management, and a chart for visual status analysis. A modal form allows for adding new totems, making the application dynamic. This is superior to a static markdown file as it allows for real-time data manipulation, visualization, and easier operational management. The user flow is: view summary -> filter/search for specifics -> view details -> add new data. -->
-    <!-- Visualization & Content Choices: Report Info: Totem status, location, value. Goal: Operational Management. Viz/Presentation: 1) KPI Cards (HTML/CSS) to show total totens, active units, and total value for an at-a-glance summary. 2) Pie Chart (Chart.js/Canvas) to visualize the proportion of totens by status (e.g., Ativo vs. Aguardando). Interaction: The chart updates dynamically with table filters. Justification: This provides a quick visual understanding of operational readiness. 3) Interactive Table (HTML/JS) to list all totens. Interaction: Search by name/reference and filter by status. Justification: Allows for efficient location and management of individual assets. This transforms the static list into a powerful control tool. -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -45,6 +41,14 @@
         .modal {
             transition: opacity 0.3s ease;
         }
+        .alert-yellow {
+            color: #d97706; /* Tailwind's yellow-600 */
+            font-weight: 600;
+        }
+        .alert-red {
+            color: #dc2626; /* Tailwind's red-600 */
+            font-weight: 600;
+        }
     </style>
 </head>
 <body class="text-gray-800">
@@ -53,18 +57,18 @@
         <header class="mb-8 flex items-center justify-between">
             <div>
                 <h1 class="text-3xl font-bold text-gray-800">Dashboard de Controle de Totens</h1>
-                <p class="text-gray-500 mt-1">Gerenciamento dos Totens</p>
+                <p class="text-gray-500 mt-1">Gerenciamento e status de todos os totens.</p>
             </div>
-            <img src="https://i.imgur.com/gK65w8h.png" alt="ConnectView Logo" class="h-16">
         </header>
 
         <section id="kpi-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Cards de KPI serão injetados aqui via JavaScript -->
         </section>
 
         <section class="bg-white p-6 rounded-2xl shadow-md mb-8">
             <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
-                <h2 class="text-xl font-semibold">Análise dos Totens</h2>
-                <div class="flex items-center gap-4">
+                <h2 class="text-xl font-semibold">Tabela de Totens</h2>
+                <div class="flex flex-wrap items-center gap-4">
                     <input type="text" id="searchInput" placeholder="Buscar por local ou referência..." class="w-full md:w-64 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]">
                     <select id="statusFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]">
                         <option value="todos">Todos os Status</option>
@@ -72,7 +76,7 @@
                         <option value="Aguardando">Aguardando</option>
                         <option value="Manutenção">Manutenção</option>
                     </select>
-                     <button id="addTotemBtn" class="bg-[#4a8538] text-white font-bold py-2 px-4 rounded-lg hover:bg-[#3b6b2d] transition-colors">
+                    <button id="addTotemBtn" class="bg-[#4a8538] text-white font-bold py-2 px-4 rounded-lg hover:bg-[#3b6b2d] transition-colors">
                         + Adicionar Totem
                     </button>
                 </div>
@@ -88,7 +92,7 @@
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contato do Responsável</th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th scope="col" class="relative px-6 py-3"><span class="sr-only">Ações</span></th>
+                                    <th scope="col" class="relative px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                                 </tr>
                             </thead>
                             <tbody id="totensTableBody" class="bg-white divide-y divide-gray-200">
@@ -104,16 +108,16 @@
                 </div>
             </div>
         </section>
-
     </div>
 
-    <div id="addTotemModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0">
+    <!-- Modal para Adicionar/Editar Totem -->
+    <div id="totemModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 transform scale-95 transition-transform">
             <div class="flex justify-between items-center mb-6">
                 <h2 id="modalTitle" class="text-2xl font-bold">Adicionar Novo Totem</h2>
                 <button id="closeModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
             </div>
-            <form id="addTotemForm">
+            <form id="totemForm">
                 <input type="hidden" id="editTotemId" name="id">
                 <div class="space-y-4">
                     <input name="local" type="text" placeholder="Local do Totem" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]" required>
@@ -130,7 +134,7 @@
                             <input name="fim" type="date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]" required>
                         </div>
                     </div>
-                    <input name="valor" type="number" step="0.01" placeholder="Valor do Termo (R$)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]" required>
+                    <input name="valor" type="number" step="0.01" placeholder="Valor do Totem (R$)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]" required>
                     <select name="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]" required>
                         <option value="" disabled selected>Selecione o Status</option>
                         <option value="Ativo">Ativo</option>
@@ -142,34 +146,53 @@
             </form>
         </div>
     </div>
+    
+    <!-- Modal de Confirmação de Exclusão -->
+    <div id="confirmModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 transform scale-95 transition-transform">
+            <h3 class="text-xl font-bold mb-4">Confirmar Exclusão</h3>
+            <p class="mb-6">Tem certeza que deseja excluir o totem <span id="totemName" class="font-bold"></span>?</p>
+            <div class="flex justify-end gap-4">
+                <button id="cancelDeleteBtn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors">Cancelar</button>
+                <button id="confirmDeleteBtn" class="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors">Excluir</button>
+            </div>
+        </div>
+    </div>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
+        // Dados de exemplo para iniciar a aplicação
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const initialData = [
+        let totensData = [
             { id: 1, local: 'Restaurante Exemplo', referencia: 'TOTEM-001', inicio: '2025-01-01', fim: new Date(today.getTime() + 45 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10), responsavel: 'João da Silva', telefone: '(85) 98888-1111', valor: 1500.00, status: 'Ativo' },
             { id: 2, local: 'Academia Exemplo', referencia: 'TOTEM-002', inicio: '2025-02-15', fim: new Date(today.getTime() + 25 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10), responsavel: 'Maria Oliveira', telefone: '(85) 98888-2222', valor: 2000.00, status: 'Ativo' },
             { id: 3, local: 'Café Exemplo', referencia: 'TOTEM-003', inicio: '2025-03-01', fim: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10), responsavel: 'Carlos Santos', telefone: '(85) 98888-3333', valor: 1200.00, status: 'Ativo' },
             { id: 4, local: 'Biblioteca Central', referencia: 'TOTEM-004', inicio: '2025-09-01', fim: new Date(today.getTime() + 120 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10), responsavel: 'Ana Lima', telefone: '(85) 98888-4444', valor: 1800.00, status: 'Manutenção' }
         ];
 
-        let totensData = [...initialData];
+        // Referências aos elementos do DOM
         let statusChart;
-
         const tableBody = document.getElementById('totensTableBody');
         const kpiContainer = document.getElementById('kpi-cards');
         const searchInput = document.getElementById('searchInput');
         const statusFilter = document.getElementById('statusFilter');
 
-        const addTotemBtn = document.getElementById('addTotemBtn');
-        const modal = document.getElementById('addTotemModal');
+        const totemModal = document.getElementById('totemModal');
         const closeModalBtn = document.getElementById('closeModalBtn');
-        const addTotemForm = document.getElementById('addTotemForm');
+        const totemForm = document.getElementById('totemForm');
+        const addTotemBtn = document.getElementById('addTotemBtn');
         const modalTitle = document.getElementById('modalTitle');
         const totemIdInput = document.getElementById('editTotemId');
+        
+        const confirmModal = document.getElementById('confirmModal');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+        const totemNameSpan = document.getElementById('totemName');
+        let totemToDeleteId = null;
 
+        // Cores e estilos para o dashboard
         const statusColors = {
             'Ativo': 'bg-[#4a8538] text-white',
             'Aguardando': 'bg-[#2E6B8D] text-white',
@@ -182,6 +205,7 @@
             'Manutenção': '#EF4444',
         };
         
+        // Funções auxiliares para formatação
         function formatCurrency(value) {
             return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         }
@@ -192,6 +216,24 @@
             return date.toLocaleDateString('pt-BR');
         }
 
+        // Funções para gerenciamento do modal
+        function showModal(modalElement) {
+            modalElement.classList.remove('hidden');
+            setTimeout(() => {
+                modalElement.classList.remove('opacity-0');
+                modalElement.querySelector('div').classList.remove('scale-95');
+            }, 10);
+        }
+
+        function hideModal(modalElement) {
+            modalElement.classList.add('opacity-0');
+            modalElement.querySelector('div').classList.add('scale-95');
+            setTimeout(() => {
+                modalElement.classList.add('hidden');
+            }, 300);
+        }
+
+        // Renderiza os cards de KPI (indicadores chave de desempenho)
         function renderKPIs(data) {
             const totalTotens = data.length;
             const totalAtivos = data.filter(t => t.status === 'Ativo').length;
@@ -207,7 +249,7 @@
                     </div>
                 </div>
                 <div class="bg-white p-6 rounded-2xl shadow-md flex items-center gap-4">
-                     <div class="bg-[#2E6B8D] p-3 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+                     <div class="bg-[#4a8538] p-3 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
                     <div>
                         <p class="text-sm text-gray-500">Totens Ativos</p>
                         <p class="text-2xl font-bold">${totalAtivos}</p>
@@ -230,29 +272,16 @@
             `;
         }
 
+        // Renderiza a tabela de totens
         function renderTable(data) {
             tableBody.innerHTML = '';
             if (data.length === 0) {
                  tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-500">Nenhum totem encontrado.</td></tr>`;
                  return;
             }
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
 
             data.forEach(totem => {
                 const row = document.createElement('tr');
-                const fimPeriodo = new Date(totem.fim + 'T00:00:00');
-                const diffTime = fimPeriodo.getTime() - today.getTime();
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                
-                let statusTextClass = '';
-                if (diffDays <= 10 && diffDays >= 0) {
-                    statusTextClass = 'alert-red'; 
-                } else if (diffDays > 10 && diffDays <= 30) {
-                    statusTextClass = 'alert-yellow';
-                } else if (diffDays < 0) {
-                    statusTextClass = 'alert-red';
-                }
                 
                 row.className = 'hover:bg-gray-50';
                 row.innerHTML = `
@@ -270,14 +299,13 @@
                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[totem.status] || 'bg-gray-100 text-gray-800'}">
                             ${totem.status}
                         </span>
-                        <div class="text-xs mt-1 ${statusTextClass}">${diffDays >= 0 ? `Expira em ${diffDays} dias` : 'Vencido'}</div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button onclick="editTotem(${totem.id})" class="text-gray-500 hover:text-gray-900 mr-2">
-                           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                    <td class="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
+                        <button onclick="window.editTotem(${totem.id})" class="text-gray-500 hover:text-gray-900 mr-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                         </button>
-                         <button onclick="deleteTotem(${totem.id})" class="text-red-500 hover:text-red-700">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.013 21H7.987a2 2 0 01-1.92-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        <button onclick="window.showDeleteConfirmation(${totem.id})" class="text-red-500 hover:text-red-700">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.013 21H7.987a2 2 0 01-1.92-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                     </td>
                 `;
@@ -285,28 +313,7 @@
             });
         }
 
-        function editTotem(id) {
-            const totem = totensData.find(t => t.id === id);
-            if (totem) {
-                modalTitle.textContent = 'Editar Totem';
-                totemIdInput.value = totem.id;
-                addTotemForm.local.value = totem.local;
-                addTotemForm.referencia.value = totem.referencia;
-                addTotemForm.responsavel.value = totem.responsavel;
-                addTotemForm.telefone.value = totem.telefone;
-                addTotemForm.inicio.value = totem.inicio;
-                addTotemForm.fim.value = totem.fim;
-                addTotemForm.valor.value = totem.valor;
-                addTotemForm.status.value = totem.status;
-                showModal();
-            }
-        }
-
-        function deleteTotem(id) {
-            totensData = totensData.filter(totem => totem.id !== id);
-            updateAll();
-        }
-
+        // Renderiza o gráfico de status
         function renderChart(data) {
             const ctx = document.getElementById('statusChart').getContext('2d');
             const statusCounts = data.reduce((acc, totem) => {
@@ -360,27 +367,7 @@
             });
         }
 
-        function filterData() {
-            const searchTerm = searchInput.value.toLowerCase();
-            const status = statusFilter.value;
-
-            let filtered = totensData.filter(totem => {
-                const searchMatch = totem.local.toLowerCase().includes(searchTerm) || totem.referencia.toLowerCase().includes(searchTerm);
-                const statusMatch = status === 'todos' || totem.status === status;
-                return searchMatch && statusMatch;
-            });
-            
-            renderTable(filtered);
-            renderChart(filtered);
-        }
-
-        function updateAll() {
-            const filteredData = getFilteredData();
-            renderKPIs(totensData);
-            renderTable(filteredData);
-            renderChart(filteredData);
-        }
-        
+        // Lógica de filtragem e busca
         function getFilteredData() {
             const searchTerm = searchInput.value.toLowerCase();
             const status = statusFilter.value;
@@ -391,26 +378,82 @@
             });
         }
         
-        function showModal() {
-            modal.classList.remove('hidden');
-            setTimeout(() => {
-                modal.classList.remove('opacity-0');
-                modal.querySelector('div').classList.remove('scale-95');
-            }, 10);
+        // Função principal para atualizar o dashboard
+        function updateDashboard() {
+            const filteredData = getFilteredData();
+            renderKPIs(totensData); // KPIs sempre mostram o total de dados, não os filtrados
+            renderTable(filteredData);
+            renderChart(filteredData);
         }
 
-        function hideModal() {
-            modal.classList.add('opacity-0');
-            modal.querySelector('div').classList.add('scale-95');
-            setTimeout(() => {
-                modal.classList.add('hidden');
-                addTotemForm.reset();
-                modalTitle.textContent = 'Adicionar Novo Totem';
-                totemIdInput.value = '';
-            }, 300);
+        // Funções de CRUD (Create, Read, Update, Delete)
+        function editTotem(id) {
+            const totem = totensData.find(t => t.id === id);
+            if (totem) {
+                modalTitle.textContent = 'Editar Totem';
+                totemIdInput.value = totem.id;
+                totemForm.local.value = totem.local;
+                totemForm.referencia.value = totem.referencia;
+                totemForm.responsavel.value = totem.responsavel;
+                totemForm.telefone.value = totem.telefone;
+                totemForm.inicio.value = totem.inicio;
+                totemForm.fim.value = totem.fim;
+                totemForm.valor.value = totem.valor;
+                totemForm.status.value = totem.status;
+                showModal(totemModal);
+            }
+        }
+        
+        function showDeleteConfirmation(id) {
+            const totem = totensData.find(t => t.id === id);
+            if (totem) {
+                totemToDeleteId = id;
+                totemNameSpan.textContent = totem.referencia;
+                showModal(confirmModal);
+            }
         }
 
-        addTotemForm.addEventListener('submit', (e) => {
+        function deleteTotem(id) {
+            totensData = totensData.filter(totem => totem.id !== id);
+            hideModal(confirmModal);
+            updateDashboard();
+        }
+
+        // Event Listeners
+        addTotemBtn.addEventListener('click', () => {
+            // Limpa o formulário e prepara o modal para adicionar um novo totem
+            modalTitle.textContent = 'Adicionar Novo Totem';
+            totemIdInput.value = '';
+            totemForm.reset();
+            showModal(totemModal);
+        });
+
+        closeModalBtn.addEventListener('click', () => hideModal(totemModal));
+        
+        // Fechar o modal clicando fora dele
+        totemModal.addEventListener('click', (e) => {
+            if (e.target === totemModal) {
+                hideModal(totemModal);
+            }
+        });
+        
+        // Fechar o modal de confirmação clicando fora dele ou no botão Cancelar
+        confirmModal.addEventListener('click', (e) => {
+             if (e.target === confirmModal) {
+                 hideModal(confirmModal);
+             }
+        });
+
+        cancelDeleteBtn.addEventListener('click', () => hideModal(confirmModal));
+        
+        confirmDeleteBtn.addEventListener('click', () => {
+             if (totemToDeleteId !== null) {
+                 deleteTotem(totemToDeleteId);
+                 totemToDeleteId = null; // Reseta a variável
+             }
+        });
+
+        totemForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
             const totemId = formData.get('id');
@@ -423,7 +466,6 @@
                 fim: formData.get('fim'),
                 valor: parseFloat(formData.get('valor')),
                 status: formData.get('status'),
-                obs: '-'
             };
 
             if (totemId) {
@@ -436,37 +478,20 @@
                 totensData.push(newTotem);
             }
 
-            hideModal();
-            updateAll();
+            hideModal(totemModal);
+            updateDashboard();
         });
 
+        searchInput.addEventListener('input', updateDashboard);
+        statusFilter.addEventListener('change', updateDashboard);
 
-        searchInput.addEventListener('input', () => {
-             const filtered = getFilteredData();
-             renderTable(filtered);
-        });
-
-        statusFilter.addEventListener('change', () => {
-             const filtered = getFilteredData();
-             renderTable(filtered);
-             renderChart(filtered);
-        });
-
-        addTotemBtn.addEventListener('click', () => {
-            hideModal(); 
-            showModal();
-        });
-        closeModalBtn.addEventListener('click', hideModal);
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                hideModal();
-            }
-        });
-
+        // Exporta as funções para serem acessíveis no HTML (onclick)
         window.editTotem = editTotem;
+        window.showDeleteConfirmation = showDeleteConfirmation;
         window.deleteTotem = deleteTotem;
 
-        updateAll();
+        // Inicia o dashboard
+        updateDashboard();
     });
 </script>
 
