@@ -145,11 +145,14 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         const initialData = [
-            { id: 1, local: 'Restaurante Exemplo', referencia: 'TOTEM-001', inicio: '2025-01-01', fim: '2025-09-25', responsavel: 'João da Silva', telefone: '(85) 98888-1111', valor: 1500.00, status: 'Ativo', obs: '-' },
-            { id: 2, local: 'Academia Exemplo', referencia: 'TOTEM-002', inicio: '2025-02-15', fim: '2025-08-15', responsavel: 'Maria Oliveira', telefone: '(85) 98888-2222', valor: 2000.00, status: 'Ativo', obs: 'Manutenção em 15/05' },
-            { id: 3, local: 'Café Exemplo', referencia: 'TOTEM-003', inicio: '2025-03-01', fim: '2025-10-15', responsavel: 'Carlos Santos', telefone: '(85) 98888-3333', valor: 1200.00, status: 'Aguardando', obs: '-' },
-            { id: 4, local: 'Biblioteca Central', referencia: 'TOTEM-004', inicio: '2025-09-01', fim: '2025-10-15', responsavel: 'Ana Lima', telefone: '(85) 98888-4444', valor: 1800.00, status: 'Ativo', obs: '-' }
+            { id: 1, local: 'Restaurante Exemplo', referencia: 'TOTEM-001', inicio: '2025-01-01', fim: new Date(today.getTime() + 45 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10), responsavel: 'João da Silva', telefone: '(85) 98888-1111', valor: 1500.00, status: 'Ativo' },
+            { id: 2, local: 'Academia Exemplo', referencia: 'TOTEM-002', inicio: '2025-02-15', fim: new Date(today.getTime() + 25 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10), responsavel: 'Maria Oliveira', telefone: '(85) 98888-2222', valor: 2000.00, status: 'Ativo' },
+            { id: 3, local: 'Café Exemplo', referencia: 'TOTEM-003', inicio: '2025-03-01', fim: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10), responsavel: 'Carlos Santos', telefone: '(85) 98888-3333', valor: 1200.00, status: 'Ativo' },
+            { id: 4, local: 'Biblioteca Central', referencia: 'TOTEM-004', inicio: '2025-09-01', fim: new Date(today.getTime() + 120 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10), responsavel: 'Ana Lima', telefone: '(85) 98888-4444', valor: 1800.00, status: 'Manutenção' }
         ];
 
         let totensData = [...initialData];
@@ -178,7 +181,7 @@
             'Aguardando': '#2E6B8D',
             'Manutenção': '#EF4444',
         };
-
+        
         function formatCurrency(value) {
             return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         }
@@ -213,7 +216,7 @@
                 <div class="bg-white p-6 rounded-2xl shadow-md flex items-center gap-4">
                     <div class="bg-[#2E6B8D] p-3 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01" /></svg></div>
                     <div>
-                        <p class="text-sm text-gray-500">Valor Total (Termos)</p>
+                        <p class="text-sm text-gray-500">Valor Total</p>
                         <p class="text-2xl font-bold">${formatCurrency(totalValor)}</p>
                     </div>
                 </div>
@@ -242,14 +245,16 @@
                 const diffTime = fimPeriodo.getTime() - today.getTime();
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                 
-                let rowClass = 'hover:bg-gray-50';
-                if (diffDays <= 30 && diffDays > 0) {
-                    rowClass += ' bg-yellow-100'; 
-                } else if (diffDays <= 0) {
-                    rowClass += ' bg-red-100';
+                let statusTextClass = '';
+                if (diffDays <= 10 && diffDays >= 0) {
+                    statusTextClass = 'alert-red'; 
+                } else if (diffDays > 10 && diffDays <= 30) {
+                    statusTextClass = 'alert-yellow';
+                } else if (diffDays < 0) {
+                    statusTextClass = 'alert-red';
                 }
-
-                row.className = rowClass;
+                
+                row.className = 'hover:bg-gray-50';
                 row.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="text-sm font-medium text-gray-900">${totem.local}</div>
@@ -261,15 +266,18 @@
                         <div class="text-sm text-gray-500">${totem.telefone}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">${formatCurrency(totem.valor)}</td>
-                    <td class="px-6 py-4 whitespace-nowrap flex items-center">
+                    <td class="px-6 py-4 whitespace-nowrap">
                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[totem.status] || 'bg-gray-100 text-gray-800'}">
                             ${totem.status}
                         </span>
-                        <button onclick="editTotem(${totem.id})" class="text-sm text-gray-500 hover:text-gray-900 ml-2">
-                           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                        <div class="text-xs mt-1 ${statusTextClass}">${diffDays >= 0 ? `Expira em ${diffDays} dias` : 'Vencido'}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button onclick="editTotem(${totem.id})" class="text-gray-500 hover:text-gray-900 mr-2">
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                         </button>
-                         <button onclick="deleteTotem(${totem.id})" class="text-sm text-red-500 hover:text-red-700 ml-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.013 21H7.987a2 2 0 01-1.92-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                         <button onclick="deleteTotem(${totem.id})" class="text-red-500 hover:text-red-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.013 21H7.987a2 2 0 01-1.92-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                     </td>
                 `;
@@ -308,7 +316,7 @@
 
             const labels = Object.keys(statusCounts);
             const values = Object.values(statusCounts);
-            const backgroundColors = labels.map(label => chartColors[label] || '#A1A1AA');
+            const backgroundColors = labels.map(label => chartColors[label] || '#9CA3AF');
             
             if (statusChart) {
                 statusChart.destroy();
