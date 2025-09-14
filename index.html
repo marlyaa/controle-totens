@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Chosen Palette: ConnectView Colors (Dark Blue, Lime Green) -->
     <!-- Application Structure Plan: A dashboard structure was chosen to provide an immediate overview of key metrics (KPIs) and a detailed, interactive view of the assets. This structure includes KPI cards for quick stats, an interactive table with search and filter capabilities for detailed management, and a chart for visual status analysis. A modal form allows for adding new totems, making the application dynamic. This is superior to a static markdown file as it allows for real-time data manipulation, visualization, and easier operational management. The user flow is: view summary -> filter/search for specifics -> view details -> add new data. -->
-    <!-- Visualization & Content Choices: Report Info: Totem status, location, value. Goal: Operational Management. Viz/Presentation: 1) KPI Cards (HTML/CSS) to show total totens, active units, and total value for an at-a-glance summary. 2) Pie Chart (Chart.js/Canvas) to visualize the proportion of totems by status (e.g., Ativo vs. Aguardando). Interaction: The chart updates dynamically with table filters. Justification: This provides a quick visual understanding of operational readiness. 3) Interactive Table (HTML/JS) to list all totens. Interaction: Search by name/reference and filter by status. Justification: Allows for efficient location and management of individual assets. This transforms the static list into a powerful control tool. -->
+    <!-- Visualization & Content Choices: Report Info: Totem status, location, value. Goal: Operational Management. Viz/Presentation: 1) KPI Cards (HTML/CSS) to show total totens, active units, and total value for an at-a-glance summary. 2) Pie Chart (Chart.js/Canvas) to visualize the proportion of totens by status (e.g., Ativo vs. Aguardando). Interaction: The chart updates dynamically with table filters. Justification: This provides a quick visual understanding of operational readiness. 3) Interactive Table (HTML/JS) to list all totens. Interaction: Search by name/reference and filter by status. Justification: Allows for efficient location and management of individual assets. This transforms the static list into a powerful control tool. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
@@ -55,7 +55,7 @@
                 <h1 class="text-3xl font-bold text-gray-800">Dashboard de Controle de Totens</h1>
                 <p class="text-gray-500 mt-1">Gerenciamento dos Totens</p>
             </div>
-            <img src="https://i.imgur.com/L12n8e4.png" alt="ConnectView Logo" class="h-16">
+            <img src="https://i.imgur.com/gK65w8h.png" alt="ConnectView Logo" class="h-16">
         </header>
 
         <section id="kpi-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -109,10 +109,11 @@
     <div id="addTotemModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-gcenter p-4 hidden opacity-0">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 transform scale-95 transition-transform">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold">Adicionar Novo Totem</h2>
+                <h2 id="modalTitle" class="text-2xl font-bold">Adicionar Novo Totem</h2>
                 <button id="closeModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
             </div>
             <form id="addTotemForm">
+                <input type="hidden" id="editTotemId" name="id">
                 <div class="space-y-4">
                     <input name="local" type="text" placeholder="Local do Totem" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]" required>
                     <input name="referencia" type="text" placeholder="Referência (ex: TOTEM-004)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]" required>
@@ -144,9 +145,10 @@
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const initialData = [
-            { id: 1, local: 'Restaurante Exemplo', referencia: 'TOTEM-001', inicio: '2025-01-01', fim: '2025-06-30', responsavel: 'João da Silva', telefone: '(85) 98888-1111', valor: 1500.00, status: 'Ativo', obs: '-' },
+            { id: 1, local: 'Restaurante Exemplo', referencia: 'TOTEM-001', inicio: '2025-01-01', fim: '2025-09-25', responsavel: 'João da Silva', telefone: '(85) 98888-1111', valor: 1500.00, status: 'Ativo', obs: '-' },
             { id: 2, local: 'Academia Exemplo', referencia: 'TOTEM-002', inicio: '2025-02-15', fim: '2025-08-15', responsavel: 'Maria Oliveira', telefone: '(85) 98888-2222', valor: 2000.00, status: 'Ativo', obs: 'Manutenção em 15/05' },
-            { id: 3, local: 'Café Exemplo', referencia: 'TOTEM-003', inicio: '2025-03-01', fim: '2025-08-31', responsavel: 'Carlos Santos', telefone: '(85) 98888-3333', valor: 1200.00, status: 'Aguardando', obs: '-' },
+            { id: 3, local: 'Café Exemplo', referencia: 'TOTEM-003', inicio: '2025-03-01', fim: '2025-10-15', responsavel: 'Carlos Santos', telefone: '(85) 98888-3333', valor: 1200.00, status: 'Aguardando', obs: '-' },
+            { id: 4, local: 'Biblioteca Central', referencia: 'TOTEM-004', inicio: '2025-09-01', fim: '2025-10-15', responsavel: 'Ana Lima', telefone: '(85) 98888-4444', valor: 1800.00, status: 'Ativo', obs: '-' }
         ];
 
         let totensData = [...initialData];
@@ -161,6 +163,8 @@
         const modal = document.getElementById('addTotemModal');
         const closeModalBtn = document.getElementById('closeModalBtn');
         const addTotemForm = document.getElementById('addTotemForm');
+        const modalTitle = document.getElementById('modalTitle');
+        const totemIdInput = document.getElementById('editTotemId');
 
         const statusColors = {
             'Ativo': 'bg-[#4a8538] text-white',
@@ -179,6 +183,7 @@
         }
         
         function formatDate(dateString) {
+            if (!dateString) return '';
             const date = new Date(dateString + 'T00:00:00');
             return date.toLocaleDateString('pt-BR');
         }
@@ -224,13 +229,26 @@
         function renderTable(data) {
             tableBody.innerHTML = '';
             if (data.length === 0) {
-                 tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-gray-500">Nenhum totem encontrado.</td></tr>`;
+                 tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-500">Nenhum totem encontrado.</td></tr>`;
                  return;
             }
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
             data.forEach(totem => {
                 const row = document.createElement('tr');
-                row.className = 'hover:bg-gray-50';
+                const fimPeriodo = new Date(totem.fim + 'T00:00:00');
+                const diffTime = fimPeriodo.getTime() - today.getTime();
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                let rowClass = 'hover:bg-gray-50';
+                if (diffDays <= 30 && diffDays > 0) {
+                    rowClass += ' bg-yellow-100'; 
+                } else if (diffDays <= 0) {
+                    rowClass += ' bg-red-100';
+                }
+
+                row.className = rowClass;
                 row.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="text-sm font-medium text-gray-900">${totem.local}</div>
@@ -242,14 +260,34 @@
                         <div class="text-sm text-gray-500">${totem.telefone}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">${formatCurrency(totem.valor)}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
+                    <td class="px-6 py-4 whitespace-nowrap flex items-center">
                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[totem.status] || 'bg-gray-100 text-gray-800'}">
                             ${totem.status}
                         </span>
+                        <button onclick="editTotem(${totem.id})" class="text-sm text-gray-500 hover:text-gray-900 ml-2">
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                        </button>
                     </td>
                 `;
                 tableBody.appendChild(row);
             });
+        }
+
+        function editTotem(id) {
+            const totem = totensData.find(t => t.id === id);
+            if (totem) {
+                modalTitle.textContent = 'Editar Totem';
+                totemIdInput.value = totem.id;
+                addTotemForm.local.value = totem.local;
+                addTotemForm.referencia.value = totem.referencia;
+                addTotemForm.responsavel.value = totem.responsavel;
+                addTotemForm.telefone.value = totem.telefone;
+                addTotemForm.inicio.value = totem.inicio;
+                addTotemForm.fim.value = totem.fim;
+                addTotemForm.valor.value = totem.valor;
+                addTotemForm.status.value = totem.status;
+                showModal();
+            }
         }
 
         function renderChart(data) {
@@ -349,14 +387,17 @@
             modal.querySelector('div').classList.add('scale-95');
             setTimeout(() => {
                 modal.classList.add('hidden');
+                addTotemForm.reset();
+                modalTitle.textContent = 'Adicionar Novo Totem';
+                totemIdInput.value = '';
             }, 300);
         }
 
         addTotemForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
+            const totemId = formData.get('id');
             const newTotem = {
-                id: totensData.length + 1,
                 local: formData.get('local'),
                 referencia: formData.get('referencia'),
                 responsavel: formData.get('responsavel'),
@@ -367,8 +408,17 @@
                 status: formData.get('status'),
                 obs: '-'
             };
-            totensData.push(newTotem);
-            e.target.reset();
+
+            if (totemId) {
+                const index = totensData.findIndex(t => t.id === parseInt(totemId));
+                if (index !== -1) {
+                    totensData[index] = { ...totensData[index], ...newTotem };
+                }
+            } else {
+                newTotem.id = totensData.length ? Math.max(...totensData.map(t => t.id)) + 1 : 1;
+                totensData.push(newTotem);
+            }
+
             hideModal();
             updateAll();
         });
@@ -385,13 +435,18 @@
              renderChart(filtered);
         });
 
-        addTotemBtn.addEventListener('click', showModal);
+        addTotemBtn.addEventListener('click', () => {
+            hideModal(); 
+            showModal();
+        });
         closeModalBtn.addEventListener('click', hideModal);
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 hideModal();
             }
         });
+
+        window.editTotem = editTotem;
 
         updateAll();
     });
