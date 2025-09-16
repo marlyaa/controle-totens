@@ -49,6 +49,21 @@
             color: #dc2626;
             font-weight: 600;
         }
+        #connectionStatus {
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+        }
+        .status-success {
+            background-color: #d1fae5;
+            color: #10b981;
+        }
+        .status-error {
+            background-color: #fee2e2;
+            color: #ef4444;
+        }
     </style>
 </head>
 <body class="text-gray-800">
@@ -60,6 +75,8 @@
                 <p class="text-gray-500 mt-1">Gerenciamento e status de todos os totens.</p>
             </div>
         </header>
+
+        <div id="connectionStatus">Verificando conexão com o servidor...</div>
 
         <section id="kpi-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             </section>
@@ -165,6 +182,7 @@
         
         // Referências aos elementos do DOM
         let statusChart;
+        const connectionStatusDiv = document.getElementById('connectionStatus');
         const tableBody = document.getElementById('totensTableBody');
         const kpiContainer = document.getElementById('kpi-cards');
         const searchInput = document.getElementById('searchInput');
@@ -376,6 +394,11 @@
                 const response = await fetch(`${BASE_URL}/api/totens`);
                 const totensData = await response.json();
                 
+                // Exibir status de sucesso
+                connectionStatusDiv.textContent = 'Conexão com o servidor: OK';
+                connectionStatusDiv.classList.remove('status-error');
+                connectionStatusDiv.classList.add('status-success');
+
                 const filteredData = getFilteredData(totensData);
                 renderKPIs(totensData);
                 renderTable(filteredData, totensData);
@@ -383,6 +406,11 @@
             } catch (error) {
                 console.error('Erro ao buscar dados:', error);
                 tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-500">Erro ao carregar dados. Verifique o servidor.</td></tr>`;
+                
+                // Exibir status de erro
+                connectionStatusDiv.textContent = 'Conexão com o servidor: FALHOU';
+                connectionStatusDiv.classList.remove('status-success');
+                connectionStatusDiv.classList.add('status-error');
             }
         }
 
@@ -505,6 +533,3 @@
         updateDashboard();
     });
 </script>
-
-</body>
-</html>
