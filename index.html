@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Controle de Totens</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .chart-container {
+            position: relative;
+            height: 350px;
+            width: 100%;
+            max-width: 400px;
+            margin: auto;
+        }
+        .table-container {
+            max-height: 450px;
+            overflow-y: auto;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+        .modal {
+            transition: opacity 0.3s ease;
+        }
+        .alert-yellow {
+            color: #d97706;
+            font-weight: 600;
+        }
+        .alert-red {
+            color: #dc2626;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="mb-8 flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">Dashboard de Controle de Totens</h1>
+                <p class="text-gray-500 mt-1">Gerenciamento e status de todos os totens.</p>
+            </div>
+        </header>
+
+        <section id="kpi-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            </section>
+
+        <section class="bg-white p-6 rounded-2xl shadow-md mb-8">
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+                <h2 class="text-xl font-semibold">Tabela de Totens</h2>
+                <div class="flex flex-wrap items-center gap-4">
+                    <input type="text" id="searchInput" placeholder="Buscar por local ou referência..." class="w-full md:w-64 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]">
+                    <select id="statusFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]">
+                        <option value="todos">Todos os Status</option>
+                        <option value="Ativo">Ativo</option>
+                        <option value="Aguardando">Aguardando</option>
+                        <option value="Manutenção">Manutenção</option>
+                    </select>
+                    <button id="addTotemBtn" class="bg-[#4a8538] text-white font-bold py-2 px-4 rounded-lg hover:bg-[#3b6b2d] transition-colors">
+                        + Adicionar Totem
+                    </button>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2">
+                    <div class="table-container">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50 sticky top-0">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Local / Referência</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Período</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contato do Responsável</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th scope="col" class="relative px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="totensTableBody" class="bg-white divide-y divide-gray-200">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="lg:col-span-1 flex flex-col items-center">
+                    <h3 class="text-lg font-semibold mb-4">Distribuição por Status</h3>
+                    <div class="chart-container">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div id="totemModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 transform scale-95 transition-transform">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="modalTitle" class="text-2xl font-bold">Adicionar Novo Totem</h2>
+                <button id="closeModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+            </div>
+            <form id="totemForm">
+                <input type="hidden" id="editTotemId" name="id">
+                <div class="space-y-4">
+                    <input name="local" type="text" placeholder="Local do Totem" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]" required>
+                    <input name="referencia" type="text" placeholder="Referência (ex: TOTEM-004)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]" required>
+                    <input name="responsavel" type="text" placeholder="Nome do Responsável" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]" required>
+                    <input name="telefone" type="tel" placeholder="Telefone de Contato" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]" required>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm text-gray-500">Início do Período</label>
+                            <input name="inicio" type="date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]" required>
+                        </div>
+                        <div>
+                            <label class="text-sm text-gray-500">Fim do Período</label>
+                            <input name="fim" type="date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]" required>
+                        </div>
+                    </div>
+                    <input name="valor" type="number" step="0.01" placeholder="Valor do Totem (R$)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]" required>
+                    <select name="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]" required>
+                        <option value="" disabled selected>Selecione o Status</option>
+                        <option value="Ativo">Ativo</option>
+                        <option value="Aguardando">Aguardando</option>
+                        <option value="Manutenção">Manutenção</option>
+                    </select>
+                    <button type="submit" class="w-full bg-[#4a8538] text-white font-bold py-3 px-4 rounded-lg hover:bg-[#3b6b2d] transition-colors">Salvar Totem</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div id="confirmModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 transform scale-95 transition-transform">
+            <h3 class="text-xl font-bold mb-4">Confirmar Exclusão</h3>
+            <p class="mb-6">Tem certeza que deseja excluir o totem <span id="totemName" class="font-bold"></span>?</p>
+            <div class="flex justify-end gap-4">
+                <button id="cancelDeleteBtn" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors">Cancelar</button>
+                <button id="confirmDeleteBtn" class="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors">Excluir</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- URL DO SEU BACKEND ---
+        // Durante o desenvolvimento, usamos localhost. Depois, você usará a URL da hospedagem.
+        const BASE_URL = 'https://controle-totens-1.onrender.com';
+        
+        // Referências aos elementos do DOM
+        let statusChart;
+        const tableBody = document.getElementById('totensTableBody');
+        const kpiContainer = document.getElementById('kpi-cards');
+        const searchInput = document.getElementById('searchInput');
+        const statusFilter = document.getElementById('statusFilter');
+
+        const totemModal = document.getElementById('totemModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const totemForm = document.getElementById('totemForm');
+        const addTotemBtn = document.getElementById('addTotemBtn');
+        const modalTitle = document.getElementById('modalTitle');
+        const totemIdInput = document.getElementById('editTotemId');
+        
+        const confirmModal = document.getElementById('confirmModal');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+        const totemNameSpan = document.getElementById('totemName');
+        let totemToDeleteId = null;
+
+        // Cores e estilos para o dashboard
+        const statusColors = {
+            'Ativo': 'bg-[#4a8538] text-white',
+            'Aguardando': 'bg-[#2E6B8D] text-white',
+            'Manutenção': 'bg-red-500 text-white',
+        };
+
+        const chartColors = {
+            'Ativo': '#4a8538',
+            'Aguardando': '#2E6B8D',
+            'Manutenção': '#EF4444',
+        };
+        
+        // Funções auxiliares para formatação
+        function formatCurrency(value) {
+            return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+        
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString + 'T00:00:00');
+            return date.toLocaleDateString('pt-BR');
+        }
+
+        // Funções para gerenciamento do modal
+        function showModal(modalElement) {
+            modalElement.classList.remove('hidden');
+            setTimeout(() => {
+                modalElement.classList.remove('opacity-0');
+                modalElement.querySelector('div').classList.remove('scale-95');
+            }, 10);
+        }
+
+        function hideModal(modalElement) {
+            modalElement.classList.add('opacity-0');
+            modalElement.querySelector('div').classList.add('scale-95');
+            setTimeout(() => {
+                modalElement.classList.add('hidden');
+            }, 300);
+        }
+
+        // Renderiza os cards de KPI (indicadores chave de desempenho)
+        function renderKPIs(data) {
+            const totalTotens = data.length;
+            const totalAtivos = data.filter(t => t.status === 'Ativo').length;
+            const totalValor = data.reduce((sum, t) => sum + t.valor, 0);
+            const totalManutencao = data.filter(t => t.status === 'Manutenção').length;
+
+            kpiContainer.innerHTML = `
+                <div class="bg-white p-6 rounded-2xl shadow-md flex items-center gap-4">
+                    <div class="bg-[#2E6B8D] p-3 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg></div>
+                    <div>
+                        <p class="text-sm text-gray-500">Total de Totens</p>
+                        <p class="text-2xl font-bold">${totalTotens}</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-md flex items-center gap-4">
+                     <div class="bg-[#4a8538] p-3 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+                    <div>
+                        <p class="text-sm text-gray-500">Totens Ativos</p>
+                        <p class="text-2xl font-bold">${totalAtivos}</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-md flex items-center gap-4">
+                    <div class="bg-[#2E6B8D] p-3 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01" /></svg></div>
+                    <div>
+                        <p class="text-sm text-gray-500">Valor Total</p>
+                        <p class="text-2xl font-bold">${formatCurrency(totalValor)}</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-md flex items-center gap-4">
+                    <div class="bg-red-500 p-3 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg></div>
+                    <div>
+                        <p class="text-sm text-gray-500">Em Manutenção</p>
+                        <p class="text-2xl font-bold">${totalManutencao}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Renderiza a tabela de totens
+        function renderTable(data) {
+            tableBody.innerHTML = '';
+            if (data.length === 0) {
+                 tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-500">Nenhum totem encontrado.</td></tr>`;
+                 return;
+            }
+
+            data.forEach(totem => {
+                const row = document.createElement('tr');
+                
+                row.className = 'hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">${totem.local}</div>
+                        <div class="text-sm text-gray-500">${totem.referencia}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDate(totem.inicio)} - ${formatDate(totem.fim)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">${totem.responsavel}</div>
+                        <div class="text-sm text-gray-500">${totem.telefone}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">${formatCurrency(totem.valor)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[totem.status] || 'bg-gray-100 text-gray-800'}">
+                            ${totem.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
+                        <button onclick="window.editTotem('${totem._id}')" class="text-gray-500 hover:text-gray-900 mr-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                        </button>
+                        <button onclick="window.showDeleteConfirmation('${totem._id}')" class="text-red-500 hover:text-red-700">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.013 21H7.987a2 2 0 01-1.92-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Renderiza o gráfico de status
+        function renderChart(data) {
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            const statusCounts = data.reduce((acc, totem) => {
+                acc[totem.status] = (acc[totem.status] || 0) + 1;
+                return acc;
+            }, {});
+
+            const labels = Object.keys(statusCounts);
+            const values = Object.values(statusCounts);
+            const backgroundColors = labels.map(label => chartColors[label] || '#9CA3AF');
+            
+            if (statusChart) {
+                statusChart.destroy();
+            }
+
+            statusChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Totens por Status',
+                        data: values,
+                        backgroundColor: backgroundColors,
+                        borderColor: '#ffffff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.parsed;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Lógica de filtragem e busca
+        function getFilteredData(data) {
+            const searchTerm = searchInput.value.toLowerCase();
+            const status = statusFilter.value;
+            return data.filter(totem => {
+                const searchMatch = totem.local.toLowerCase().includes(searchTerm) || totem.referencia.toLowerCase().includes(searchTerm) || totem.responsavel.toLowerCase().includes(searchTerm) || totem.telefone.toLowerCase().includes(searchTerm);
+                const statusMatch = status === 'todos' || totem.status === status;
+                return searchMatch && statusMatch;
+            });
+        }
+        
+        // Função principal para atualizar o dashboard (faz a requisição ao backend)
+        async function updateDashboard() {
+            try {
+                // Buscando os dados do backend
+                const response = await fetch(`${BASE_URL}/api/totens`);
+                const totensData = await response.json();
+                
+                const filteredData = getFilteredData(totensData);
+                renderKPIs(totensData);
+                renderTable(filteredData, totensData);
+                renderChart(filteredData);
+            } catch (error) {
+                console.error('Erro ao buscar dados:', error);
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-500">Erro ao carregar dados. Verifique o servidor.</td></tr>`;
+            }
+        }
+
+        // Funções de CRUD modificadas para se comunicarem com o backend
+        async function saveTotem(totem) {
+            try {
+                let response;
+                if (totem._id) { // O "_id" vem do MongoDB e indica que é uma edição
+                    response = await fetch(`${BASE_URL}/api/totens/${totem._id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(totem)
+                    });
+                } else { // É um novo totem
+                    response = await fetch(`${BASE_URL}/api/totens`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(totem)
+                    });
+                }
+                if (!response.ok) throw new Error('Falha ao salvar o totem.');
+                hideModal(totemModal);
+                updateDashboard();
+            } catch (error) {
+                console.error('Erro ao salvar totem:', error);
+            }
+        }
+        
+        // Função para deletar um totem
+        async function deleteTotem(id) {
+            try {
+                const response = await fetch(`${BASE_URL}/api/totens/${id}`, {
+                    method: 'DELETE'
+                });
+                if (!response.ok) throw new Error('Falha ao excluir o totem.');
+                hideModal(confirmModal);
+                updateDashboard();
+            } catch (error) {
+                console.error('Erro ao excluir totem:', error);
+            }
+        }
+
+        // Event Listeners
+        addTotemBtn.addEventListener('click', () => {
+            modalTitle.textContent = 'Adicionar Novo Totem';
+            totemIdInput.value = '';
+            totemForm.reset();
+            showModal(totemModal);
+        });
+
+        closeModalBtn.addEventListener('click', () => hideModal(totemModal));
+        
+        totemModal.addEventListener('click', (e) => {
+            if (e.target === totemModal) {
+                hideModal(totemModal);
+            }
+        });
+
+        let totemToDeleteId = null;
+        window.showDeleteConfirmation = (id) => {
+            const totem = document.querySelector(`button[onclick="window.showDeleteConfirmation('${id}')"]`).closest('tr').querySelector('.text-sm.text-gray-500').textContent;
+            totemToDeleteId = id;
+            totemNameSpan.textContent = totem;
+            showModal(confirmModal);
+        }
+
+        cancelDeleteBtn.addEventListener('click', () => hideModal(confirmModal));
+        
+        confirmDeleteBtn.addEventListener('click', () => {
+             if (totemToDeleteId !== null) {
+                 deleteTotem(totemToDeleteId);
+                 totemToDeleteId = null;
+             }
+        });
+
+        totemForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const totem = {
+                _id: formData.get('id') || undefined,
+                local: formData.get('local'),
+                referencia: formData.get('referencia'),
+                responsavel: formData.get('responsavel'),
+                telefone: formData.get('telefone'),
+                inicio: formData.get('inicio'),
+                fim: formData.get('fim'),
+                valor: parseFloat(formData.get('valor')),
+                status: formData.get('status'),
+            };
+            saveTotem(totem);
+        });
+
+        window.editTotem = async (id) => {
+            try {
+                const response = await fetch(`${BASE_URL}/api/totens`);
+                const allTotems = await response.json();
+                const totem = allTotems.find(t => t._id === id);
+
+                if (totem) {
+                    modalTitle.textContent = 'Editar Totem';
+                    totemIdInput.value = totem._id;
+                    totemForm.local.value = totem.local;
+                    totemForm.referencia.value = totem.referencia;
+                    totemForm.responsavel.value = totem.responsavel;
+                    totemForm.telefone.value = totem.telefone;
+                    totemForm.inicio.value = totem.inicio;
+                    totemForm.fim.value = totem.fim;
+                    totemForm.valor.value = totem.valor;
+                    totemForm.status.value = totem.status;
+                    showModal(totemModal);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar totem para edição:', error);
+            }
+        };
+
+        searchInput.addEventListener('input', updateDashboard);
+        statusFilter.addEventListener('change', updateDashboard);
+
+        updateDashboard();
+    });
+</script>
+
+</body>
+</html>
